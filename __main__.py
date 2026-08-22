@@ -51,6 +51,7 @@ import pulumi
 
 from components.compute import make_compute
 from components.networking import make_networking
+from components.snapshots import make_snapshots
 from config import load_env_config
 
 # Constants
@@ -81,7 +82,18 @@ compute_outputs = make_compute(
     tags=DEFAULT_TAGS,
 )
 
-# Export the name of the bucket
+# Create snapshots
+snapshot_outputs = make_snapshots(
+    name=APP_NAME,
+    ec2_instance=compute_outputs.ec2_instance,
+    key_pair=compute_outputs.key_pair,
+    public_subnet=public_subnet_a,
+    public_security_group=compute_outputs.public_sg,
+    env=env_config,
+    tags=DEFAULT_TAGS,
+)
+
+# Export resources output
 pulumi.export("vpc_id", networking_outputs.vpc.id)
 pulumi.export(
     "vpc_subnets",
@@ -100,6 +112,9 @@ pulumi.export("vpc_igw", networking_outputs.internet_gateway.id)
 pulumi.export("vpc_public_rt", networking_outputs.public_rt.id)
 pulumi.export("ec2_id", compute_outputs.ec2_instance.id)
 pulumi.export("ec2_dns", compute_outputs.ec2_instance.public_dns)
+pulumi.export("ec2_public_sg_id", compute_outputs.public_sg.id)
 pulumi.export("ec2_keypair", compute_outputs.key_pair.key_name)
 pulumi.export("ec2_eip_name", compute_outputs.elastic_ip._name)
 pulumi.export("ec2_eip_public_ip", compute_outputs.elastic_ip.public_ip)
+pulumi.export("ec2_ami_id", snapshot_outputs.ec2_ami.id)
+pulumi.export("ec2_launch_template_id", snapshot_outputs.ec2_launch_template.id)
