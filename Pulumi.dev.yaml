@@ -1,0 +1,4 @@
+config:
+  aws:region: eu-west-2
+  bootdev-learn-aws-with-pulumi:local_ip:
+    secure: AAABAJXRZlAIY/KtMOvRNjyl1moBpYVtvR369/sCBCj/LPN0jHNAi8M/ZRGB
