@@ -11,6 +11,7 @@ class ComputeOutputs:
     ec2_instance: aws.ec2.Instance
     key_pair: aws.ec2.KeyPair
     elastic_ip: aws.ec2.Eip
+    public_sg: aws.ec2.SecurityGroup
 
 
 def _generate_ssh_keys(
@@ -159,4 +160,5 @@ def make_compute(
         key_pair=kp,
         ec2_instance=ec2_instance,
         elastic_ip=eip,
+        public_sg=public_sg,
     )
