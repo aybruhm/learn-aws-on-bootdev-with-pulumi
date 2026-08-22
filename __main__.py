@@ -1,4 +1,51 @@
-"""An AWS Python Pulumi program"""
+"""PatientPing: real AWS infrastructure built alongside the Boot.dev AWS course.
+
+Each chapter of the course introduces a new AWS service; this program provisions the corresponding resources with Pulumi, chapter by chapter.
+
+Architecture (by course chapter)
+--------------------------------
+Ch 1. Cloud Computing
+    Core concepts only -- nothing provisioned.
+
+Ch 2. Networking -- VPCs
+    - VPC (10.0.0.0/22) in eu-west-2
+    - 2 public subnets (eu-west-2a/b) and 2 private subnets (eu-west-2c/d)
+    - Internet gateway
+    - Public and private route tables with subnet associations
+
+Ch 3. EC2 -- Elastic Compute Cloud
+    - Security group: SSH from your IP, unrestricted egress
+    - t3.micro Amazon Linux 2023 instance in a public subnet
+    - SSH key pair (generated at ~/.ssh/patientping-key on first deploy)
+    - Elastic IP for a stable public address
+
+Ch 4-11. RDS, IAM, CloudWatch, Route 53, S3, CloudFront, ECS, Lambda
+    ...
+
+Usage
+-----
+Prerequisites: AWS credentials in your environment and the Pulumi CLI.
+
+1. Store your public IP (whitelists your machine for SSH in the security
+   group; re-run whenever your IP changes):
+
+       pulumi config set --secret local_ip "$(curl -s ifconfig.me)"
+
+2. Preview and deploy:
+
+       pulumi preview
+       pulumi up
+
+3. Connect to the instance (the key is generated on the first deploy):
+
+       ssh -i ~/.ssh/patientping-key ec2-user@$(pulumi stack output ec2_eip_public_ip)
+
+4. Tear everything down:
+
+       pulumi destroy
+
+All resources and stack outputs are defined at the bottom of this module; inspect them with `pulumi stack output`.
+"""
 
 import pulumi
 
