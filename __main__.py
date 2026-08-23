@@ -51,6 +51,7 @@ import pulumi
 
 from components.backups import make_ec2_backup
 from components.compute import make_compute
+from components.data_plane import make_data_plane
 from components.networking import make_networking
 from components.snapshots import make_snapshots
 from config import load_env_config
@@ -109,6 +110,17 @@ ec2_backup_outputs = make_ec2_backup(
     tags=DEFAULT_TAGS,
 )
 
+# Create data plane
+eu_west_2c = AVAILABILITY_ZONES["private"][0]
+data_plane_bundle = make_data_plane(
+    name=APP_NAME,
+    vpc=networking_outputs.vpc,
+    availability_zone=eu_west_2c,
+    private_subnets=networking_outputs.private_subnets,
+    env=env_config,
+    tags=DEFAULT_TAGS,
+)
+
 # Export resources output
 pulumi.export("vpc_id", networking_outputs.vpc.id)
 pulumi.export(
@@ -134,3 +146,10 @@ pulumi.export("ec2_eip_public_ip", compute_outputs.elastic_ip.public_ip)
 pulumi.export("ec2_ami_id", snapshot_outputs.ec2_ami.id)
 pulumi.export("ec2_launch_template_id", snapshot_outputs.ec2_launch_template.id)
 pulumi.export("ec2_backup_id", ec2_backup_outputs.ec2_instance.id)
+pulumi.export(
+    "rds_instance",
+    {
+        "endpoint": data_plane_bundle.rds_instance.endpoint,
+        "port": data_plane_bundle.rds_instance.port,
+    },
+)
