@@ -116,6 +116,7 @@ data_plane_bundle = make_data_plane(
     name=APP_NAME,
     vpc=networking_outputs.vpc,
     availability_zone=eu_west_2c,
+    ec2_public_sg=compute_outputs.public_sg,
     private_subnets=networking_outputs.private_subnets,
     env=env_config,
     tags=DEFAULT_TAGS,
@@ -146,10 +147,7 @@ pulumi.export("ec2_eip_public_ip", compute_outputs.elastic_ip.public_ip)
 pulumi.export("ec2_ami_id", snapshot_outputs.ec2_ami.id)
 pulumi.export("ec2_launch_template_id", snapshot_outputs.ec2_launch_template.id)
 pulumi.export("ec2_backup_id", ec2_backup_outputs.ec2_instance.id)
+pulumi.export("rds_instance_endpoint", data_plane_bundle.rds_instance.endpoint)
 pulumi.export(
-    "rds_instance",
-    {
-        "endpoint": data_plane_bundle.rds_instance.endpoint,
-        "port": data_plane_bundle.rds_instance.port,
-    },
+    "rds_replica_instance_endpoint", data_plane_bundle.rds_replica_instance.endpoint
 )

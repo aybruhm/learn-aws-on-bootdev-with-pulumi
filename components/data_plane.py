@@ -9,6 +9,7 @@ from config import EnvConfig
 @dataclass
 class DataPlaneBundle:
     rds_instance: aws.rds.Instance
+    rds_replica_instance: aws.rds.Instance
     rds_sg: aws.ec2.SecurityGroup
 
 
@@ -16,6 +17,7 @@ def make_data_plane(
     name: str,
     vpc: aws.ec2.Vpc,
     availability_zone: str,
+    ec2_public_sg: aws.ec2.SecurityGroup,
     private_subnets: list[aws.ec2.Subnet],
     env: EnvConfig,
     tags: dict[
@@ -41,6 +43,19 @@ def make_data_plane(
         description="Allow ec2 access to RDS",
         vpc_id=vpc.id,
         tags={**tags, "Name": rds_security_group_name},
+    )
+    aws.vpc.SecurityGroupIngressRule(
+        f"{rds_security_group_name}-postgres-ingress",
+        description="Allow inbound traff to Postgres from resources",
+        from_port=5432,
+        to_port=5432,
+        ip_protocol="tcp",
+        referenced_security_group_id=ec2_public_sg.id,
+        security_group_id=rds_security_group.id,
+        tags={
+            **tags,
+            "Name": f"{name}-postgres-ingress-rule",
+        },
     )
 
     # ===== Create Postgres RDS
@@ -77,7 +92,27 @@ def make_data_plane(
         copy_tags_to_snapshot=True,
         tags={**tags, "Name": rds_instance_name},
     )
+
+    # ===== Create Postgres RDS Replica
+    rds_replica_instance_name = f"{name}-replica"
+    rds_replica_instance = aws.rds.Instance(
+        rds_replica_instance_name,
+        identifier=rds_replica_instance_name,
+        # instance configuration
+        instance_class=rds_instance.instance_class,
+        # settings
+        replicate_source_db=rds_instance.identifier,
+        # connectivity
+        vpc_security_group_ids=[rds_security_group.id],
+        # monitoring
+        database_insights_mode="standard",
+        performance_insights_enabled=False,
+        # additional
+        skip_final_snapshot=True,
+        tags={**tags, "Name": rds_replica_instance_name},
+    )
     return DataPlaneBundle(
         rds_instance=rds_instance,
+        rds_replica_instance=rds_replica_instance,
         rds_sg=rds_security_group,
     )
