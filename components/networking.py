@@ -15,6 +15,7 @@ class NetworkingOutputs:
 
 def make_networking(
     name: str,
+    availability_zones: dict[str, list[str]],
     tags: dict[str, Any],
 ) -> NetworkingOutputs:
     # ===== Create vpc
@@ -25,13 +26,9 @@ def make_networking(
     )
 
     # ===== Create subnets
-    subnet_plan = [
-        ("public", ["eu-west-2a", "eu-west-2b"]),
-        ("private", ["eu-west-2c", "eu-west-2d"]),
-    ]
     cidr_index = 0
     subnets: list[aws.ec2.Subnet] = []
-    for zone_name, zones in subnet_plan:
+    for zone_name, zones in availability_zones.items():
         for index, availability_zone in enumerate(zones, start=1):
             subnet_name = f"{name}-{zone_name}-{index}"
             subnet = aws.ec2.Subnet(

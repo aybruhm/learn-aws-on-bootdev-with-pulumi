@@ -61,6 +61,10 @@ DEFAULT_TAGS = {
     "Name": APP_NAME,
     "ManagedBy": "Pulumi",
 }
+AVAILABILITY_ZONES = {
+    "public": ["eu-west-2a", "eu-west-2b"],
+    "private": ["eu-west-2c", "eu-west-2d"],
+}
 
 # Initialize env config
 env_config = load_env_config()
@@ -69,6 +73,7 @@ env_config = load_env_config()
 networking_outputs = make_networking(
     name=APP_NAME,
     tags=DEFAULT_TAGS,
+    availability_zones=AVAILABILITY_ZONES,
 )
 
 # Create compute
