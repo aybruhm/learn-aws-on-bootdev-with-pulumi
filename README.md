@@ -1,92 +1,110 @@
- # AWS Python S3 Bucket Pulumi Template
+# PatientPing — the Boot.dev AWS course, rebuilt with Pulumi
 
- A minimal Pulumi template for provisioning a single AWS S3 bucket using Python.
+Real AWS infrastructure, provisioned chapter by chapter while retaking the Boot.dev AWS course with [Pulumi](https://www.pulumi.com/) as the infrastructure-as-code tool instead of the AWS console (ClickOps).
 
- ## Overview
+## Why this project exists
 
- This template provisions an S3 bucket (`pulumi_aws.s3.BucketV2`) in your AWS account and exports its ID as an output. It’s an ideal starting point when:
-  - You want to learn Pulumi with AWS in Python.
-  - You need a barebones S3 bucket deployment to build upon.
-  - You prefer a minimal template without extra dependencies.
+I originally completed the Boot.dev AWS course in April 2026. This repository is a second pass through the same material with one twist: every resource is defined in Python and deployed with Pulumi. The goal is to revisit the AWS
+services themselves while making use of Pulumi IaC.
 
- ## Prerequisites
+## Architecture, chapter by chapter
 
- - An AWS account with permissions to create S3 buckets.
- - AWS credentials configured in your environment (for example via AWS CLI or environment variables).
- - Python 3.6 or later installed.
- - Pulumi CLI already installed and logged in.
+| Chapter | Topic | Resources |
+|---|---|---|
+| 1 | Cloud Computing | Concepts only — nothing provisioned |
+| 2 | Networking — VPCs | VPC (`10.0.0.0/22`), 4 subnets, internet gateway, route tables |
+| 3 | EC2 | t3.micro AL2023 instance, key pair, Elastic IP, security group, AMI, launch template, backup instance |
+| 4 | RDS | Postgres primary + read replica, private subnet group, security group |
+| 5–11 | IAM, CloudWatch, Route 53, S3, CloudFront, ECS, Lambda | Planned — added as the course progresses |
 
- ## Getting Started
+## Prerequisites
 
- 1. Generate a new project from this template:
-    ```bash
-    pulumi new aws-python
-    ```
- 2. Follow the prompts to set your project name and AWS region (default: `us-east-1`).
- 3. Change into your project directory:
-    ```bash
-    cd <project-name>
-    ```
- 4. Preview the planned changes:
-    ```bash
-    pulumi preview
-    ```
- 5. Deploy the stack:
-    ```bash
-    pulumi up
-    ```
- 6. Tear down when finished:
-    ```bash
-    pulumi destroy
-    ```
+- An AWS account (free tier covers most of the course).
+- AWS credentials available to Pulumi (AWS CLI profile or environment variables).
+- [Pulumi CLI](https://www.pulumi.com/docs/install/) installed and logged in.
+- Python 3.12+ and [uv](https://docs.astral.sh/uv/) — the project manages dependencies with uv.
 
- ## Project Layout
+## Getting started
 
- After running `pulumi new`, your directory will look like:
- ```
- ├── __main__.py         # Entry point of the Pulumi program
- ├── Pulumi.yaml         # Project metadata and template configuration
- ├── requirements.txt    # Python dependencies
- └── Pulumi.<stack>.yaml # Stack-specific configuration (e.g., Pulumi.dev.yaml)
- ```
+1. Install dependencies:
 
- ## Configuration
+   ```bash
+   uv sync
+   ```
 
- This template defines the following config value:
+2. Configure the stack secrets:
 
- - `aws:region` (string)
-   The AWS region to deploy resources into.
-   Default: `us-east-1`
+   ```bash
+   pulumi config set --secret local_ip "$(curl -s ifconfig.me)"
+   pulumi config set --secret rds_master_password "your-strong-password"
+   ```
 
- View or update configuration with:
- ```bash
- pulumi config get aws:region
- pulumi config set aws:region us-west-2
- ```
+   - `local_ip` — your public IP, whitelisted for SSH in the EC2 security
+     group. Re-run whenever your IP changes.
+   - `rds_master_password` — the Postgres master password for RDS.
 
- ## Outputs
+3. Preview and deploy:
 
- Once deployed, the stack exports:
+   ```bash
+   pulumi preview
+   pulumi up
+   ```
 
- - `bucket_name` — the ID of the created S3 bucket.
+4. Connect to the web instance (the SSH key is generated on the first deploy):
 
- Retrieve outputs with:
- ```bash
- pulumi stack output bucket_name
- ```
+   ```bash
+   ssh -i ~/.ssh/patientping-key ec2-user@$(pulumi stack output ec2_eip_public_ip)
+   ```
 
- ## Next Steps
+5. Connect to the database **from the instance** — the RDS security group
+   only accepts connections from the EC2 security group:
 
- - Customize `__main__.py` to add or configure additional resources.
- - Explore the Pulumi AWS SDK: https://www.pulumi.com/registry/packages/aws/
- - Break your infrastructure into modules for better organization.
- - Integrate into CI/CD pipelines for automated deployments.
+   ```bash
+   psql -h <endpoint-host> -U postgres -d patientping
+   ```
 
- ## Help and Community
+   Get the host from `pulumi stack output rds_instance_endpoint`.
 
- If you have questions or need assistance:
- - Pulumi Documentation: https://www.pulumi.com/docs/
- - Community Slack: https://slack.pulumi.com/
- - GitHub Issues: https://github.com/pulumi/pulumi/issues
+6. Tear everything down when you're done:
 
- Contributions and feedback are always welcome!
+   ```bash
+   pulumi destroy
+   ```
+
+## Project layout
+
+```
+├── __main__.py        # Entry point: wires the chapters together, exports outputs
+├── config.py          # Stack configuration (env name, secrets)
+├── components/
+│   ├── networking.py  # Ch 2: VPC, subnets, internet gateway, route tables
+│   ├── compute.py     # Ch 3: EC2 instance, key pair, Elastic IP, security group
+│   ├── snapshots.py   # Ch 3: AMI and launch template of the web instance
+│   ├── backups.py     # Ch 3: backup instance built from the launch template
+│   └── data_plane.py  # Ch 4: RDS Postgres primary + read replica
+├── Pulumi.yaml        # Project metadata
+└── Pulumi.dev.yaml    # Stack config (region, secrets)
+```
+
+## Configuration
+
+| Key | Type | Purpose |
+|---|---|---|
+| `aws:region` | string | Deployment region — `eu-west-2` |
+| `local_ip` | secret | Your public IP, allowed for SSH ingress |
+| `rds_master_password` | secret | Postgres master password for RDS |
+
+## Stack outputs
+
+- `vpc_id`, `vpc_subnets`, `vpc_igw`, `vpc_public_rt`
+- `ec2_id`, `ec2_public_sg_id`, `ec2_keypair`, `ec2_eip_public_ip`
+- `ec2_ami_id`, `ec2_launch_template_id`, `ec2_backup_id`
+- `rds_instance_endpoint`, `rds_replica_instance_endpoint`
+
+Inspect them with `pulumi stack output`.
+
+## A note on cost
+
+RDS (even t3.micro) and Elastic IPs are **not** free tier. The Elastic IP
+also bills while the instance is stopped. If you're not actively working
+through a chapter, run `pulumi destroy` to avoid surprise charges.
