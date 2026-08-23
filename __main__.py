@@ -18,9 +18,18 @@ Ch 3. EC2 -- Elastic Compute Cloud
     - t3.micro Amazon Linux 2023 instance in a public subnet
     - SSH key pair (generated at ~/.ssh/patientping-key on first deploy)
     - Elastic IP for a stable public address
+    - AMI snapshot and launch template of the web instance
+    - Backup instance (patientping-web-v2) built from the launch template
 
-Ch 4-11. RDS, IAM, CloudWatch, Route 53, S3, CloudFront, ECS, Lambda
-    ...
+Ch 4. RDS -- Relational Database Service
+    - Private subnet group spanning the private subnets
+    - RDS security group: Postgres (5432) from the EC2 security group only
+    - Primary Postgres instance (patientping-db) in eu-west-2c
+      (t3.micro, 20 GB encrypted gp2 storage, latest engine version)
+    - Read replica (patientping-replica)
+
+Ch 5-11. IAM, CloudWatch, Route 53, S3, CloudFront, ECS, Lambda
+    Not yet implemented -- added as the course progresses.
 
 Usage
 -----
@@ -31,16 +40,27 @@ Prerequisites: AWS credentials in your environment and the Pulumi CLI.
 
        pulumi config set --secret local_ip "$(curl -s ifconfig.me)"
 
-2. Preview and deploy:
+2. Store a master password for the RDS database:
+
+       pulumi config set --secret rds_master_password "your-password"
+
+3. Preview and deploy:
 
        pulumi preview
        pulumi up
 
-3. Connect to the instance (the key is generated on the first deploy):
+4. Connect to the instance (the key is generated on the first deploy):
 
        ssh -i ~/.ssh/patientping-key ec2-user@$(pulumi stack output ec2_eip_public_ip)
 
-4. Tear everything down:
+5. Connect to the database from the instance (RDS only accepts connections
+   from the EC2 security group):
+
+       psql -h <endpoint-host> -U postgres -d patientping
+
+   Get the endpoint from `pulumi stack output rds_instance_endpoint`.
+
+6. Tear everything down:
 
        pulumi destroy
 
