@@ -49,6 +49,7 @@ All resources and stack outputs are defined at the bottom of this module; inspec
 
 import pulumi
 
+from components.backups import make_ec2_backup
 from components.compute import make_compute
 from components.networking import make_networking
 from components.snapshots import make_snapshots
@@ -93,6 +94,16 @@ snapshot_outputs = make_snapshots(
     tags=DEFAULT_TAGS,
 )
 
+# Create backups
+# -------- ec2
+ec2_backup_outputs = make_ec2_backup(
+    name=APP_NAME,
+    ec2_launch_template=snapshot_outputs.ec2_launch_template,
+    ec2_eip=compute_outputs.elastic_ip,
+    env=env_config,
+    tags=DEFAULT_TAGS,
+)
+
 # Export resources output
 pulumi.export("vpc_id", networking_outputs.vpc.id)
 pulumi.export(
@@ -111,10 +122,10 @@ pulumi.export(
 pulumi.export("vpc_igw", networking_outputs.internet_gateway.id)
 pulumi.export("vpc_public_rt", networking_outputs.public_rt.id)
 pulumi.export("ec2_id", compute_outputs.ec2_instance.id)
-pulumi.export("ec2_dns", compute_outputs.ec2_instance.public_dns)
 pulumi.export("ec2_public_sg_id", compute_outputs.public_sg.id)
 pulumi.export("ec2_keypair", compute_outputs.key_pair.key_name)
 pulumi.export("ec2_eip_name", compute_outputs.elastic_ip._name)
 pulumi.export("ec2_eip_public_ip", compute_outputs.elastic_ip.public_ip)
 pulumi.export("ec2_ami_id", snapshot_outputs.ec2_ami.id)
 pulumi.export("ec2_launch_template_id", snapshot_outputs.ec2_launch_template.id)
+pulumi.export("ec2_backup_id", ec2_backup_outputs.ec2_instance.id)
