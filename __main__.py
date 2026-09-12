@@ -72,6 +72,7 @@ import pulumi
 from components.backups import make_ec2_backup
 from components.compute import make_compute
 from components.data_plane import make_data_plane
+from components.iam import make_iam
 from components.networking import make_networking
 from components.snapshots import make_snapshots
 from config import load_env_config
@@ -97,14 +98,23 @@ networking_outputs = make_networking(
     availability_zones=AVAILABILITY_ZONES,
 )
 
+# Create IAM
+iam_outputs = make_iam(
+    name=APP_NAME,
+    env=env_config,
+    tags=DEFAULT_TAGS,
+)
+
 # Create compute
 public_subnet_a = min(
-    networking_outputs.public_subnets, key=lambda subnet: subnet._name
+    networking_outputs.public_subnets,
+    key=lambda subnet: subnet._name,
 )
 compute_outputs = make_compute(
     name=APP_NAME,
     vpc=networking_outputs.vpc,
     public_subnet=public_subnet_a,
+    ec2_instance_profile=iam_outputs.ec2_instance_profile,
     env=env_config,
     tags=DEFAULT_TAGS,
 )
@@ -170,4 +180,15 @@ pulumi.export("ec2_backup_id", ec2_backup_outputs.ec2_instance.id)
 pulumi.export("rds_instance_endpoint", data_plane_bundle.rds_instance.endpoint)
 pulumi.export(
     "rds_replica_instance_endpoint", data_plane_bundle.rds_replica_instance.endpoint
+)
+pulumi.export("iam_user_id", iam_outputs.user.id)
+pulumi.export("iam_policy_id", iam_outputs.policy.id)
+pulumi.export("iam_group_id", iam_outputs.group.id)
+pulumi.export(
+    "iam_user_group_membership",
+    {
+        "id": iam_outputs.user_group_membership.id,
+        "groups": iam_outputs.user_group_membership.groups,
+        "user": iam_outputs.user_group_membership.user,
+    },
 )

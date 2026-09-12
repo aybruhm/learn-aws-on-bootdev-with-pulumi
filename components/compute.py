@@ -67,6 +67,7 @@ def make_compute(
     name: str,
     vpc: aws.ec2.Vpc,
     public_subnet: aws.ec2.Subnet,
+    ec2_instance_profile: aws.iam.InstanceProfile,
     env: EnvConfig,
     tags: dict[
         str,
@@ -139,6 +140,7 @@ def make_compute(
         key_name=kp.key_name,
         associate_public_ip_address=False,
         subnet_id=public_subnet.id,
+        iam_instance_profile=ec2_instance_profile.name,
         security_groups=[public_sg.id],
         tags={**tags, "Name": f"{name}-web"},
     )
