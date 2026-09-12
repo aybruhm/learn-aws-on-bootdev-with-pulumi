@@ -48,6 +48,24 @@ def make_iam(
         policy=iam_ec2_policy_document.json,
     )
 
+    # ===== Create Deny All Policy for IAM User
+    iam_deny_all_policy_document = aws.iam.get_policy_document(
+        statements=[
+            {
+                "sid": "DenyEverything",
+                "effect": "Deny",
+                "actions": ["*"],
+                "resources": ["*"],
+            }
+        ]
+    )
+    iam_deny_all_policy = aws.iam.Policy(
+        f"{name}-deny-all",
+        name=f"{name}-deny-all",
+        description="Denies all actions for the IAM user.",
+        policy=iam_deny_all_policy_document.json,
+    )
+
     # ===== Create IAM role
     iam_ec2_role_name = f"{name}-ec2-readonly-role"
     iam_ec2_role = aws.iam.Role(
@@ -73,6 +91,11 @@ def make_iam(
     aws.iam.RolePolicyAttachment(
         f"{iam_ec2_role_name}-ply-attmnt",
         policy_arn=iam_ec2_policy.arn,
+        role=iam_ec2_role.name,
+    )
+    aws.iam.RolePolicyAttachment(
+        f"{iam_ec2_role_name}-deny-all-ply-attmnt",
+        policy_arn=iam_deny_all_policy.arn,
         role=iam_ec2_role.name,
     )
 
