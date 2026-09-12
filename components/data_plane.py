@@ -90,6 +90,7 @@ def make_data_plane(
         db_name=name,
         backup_retention_period=1,
         copy_tags_to_snapshot=True,
+        skip_final_snapshot=True,
         tags={**tags, "Name": rds_instance_name},
     )
 
@@ -101,6 +102,7 @@ def make_data_plane(
         # instance configuration
         instance_class=rds_instance.instance_class,
         # settings
+        storage_encrypted=True,
         replicate_source_db=rds_instance.identifier,
         # connectivity
         vpc_security_group_ids=[rds_security_group.id],
