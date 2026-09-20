@@ -1,6 +1,7 @@
 config:
   aws:region: eu-west-2
   bootdev-learn-aws-with-pulumi:local_ip:
-    secure: AAABAGzphYbsN850lV/tpNpzpBLticjb7sDujRZ2uakYdtTe/nvRhaUkSKvkNA==
+    secure: AAABAFoN6H971wwY+gYcEzQoec78ugyPFxjvXEccos1o7lLu8LjhdbJZyWbb
   bootdev-learn-aws-with-pulumi:rds_master_password:
     secure: AAABAJWnKsyuHm/hf52HlbuY2eCULtq2V+cRtZOfZSk7tzIgWF0Z3jlUyv7Fzx7HIHyz2x/1lnwO2/YDckr0wTCDCFoyKim1fIc=
+  bootdev-learn-aws-with-pulumi:cmo_name: Dr. Strangelove
