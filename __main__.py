@@ -74,6 +74,7 @@ from components.compute import make_compute
 from components.data_plane import make_data_plane
 from components.iam import make_iam
 from components.networking import make_networking
+from components.secrets import attach_ssm_parameters_to_ec2, make_ssm_parameters
 from components.snapshots import make_snapshots
 from config import load_env_config
 
@@ -152,6 +153,23 @@ data_plane_bundle = make_data_plane(
     tags=DEFAULT_TAGS,
 )
 
+# Create ssm parameters
+ssm_parameters_outputs = make_ssm_parameters(
+    name=APP_NAME,
+    data_plane_rds_instance=data_plane_bundle.rds_instance,
+    env=env_config,
+    tags=DEFAULT_TAGS,
+)
+attach_ssm_parameters_to_ec2(
+    name=APP_NAME,
+    ec2_role=iam_outputs.ec2_role,
+    parameters=[
+        ssm_parameters_outputs.cmo_name_ssmparameter.name,
+        ssm_parameters_outputs.db_url_ssmparameter.name,
+    ],
+)
+
+
 # Export resources output
 pulumi.export("vpc_id", networking_outputs.vpc.id)
 pulumi.export(
@@ -191,4 +209,12 @@ pulumi.export(
         "groups": iam_outputs.user_group_membership.groups,
         "user": iam_outputs.user_group_membership.user,
     },
+)
+pulumi.export(
+    "db_url_ssm_parameter_id",
+    ssm_parameters_outputs.db_url_ssmparameter.id,
+)
+pulumi.export(
+    "cmo_name_ssm_parameter_id",
+    ssm_parameters_outputs.cmo_name_ssmparameter.id,
 )
