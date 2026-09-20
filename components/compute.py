@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
+import pulumi
 import pulumi_aws as aws
 
 from config import EnvConfig
@@ -143,6 +144,9 @@ def make_compute(
         iam_instance_profile=ec2_instance_profile.name,
         security_groups=[public_sg.id],
         tags={**tags, "Name": f"{name}-web"},
+        opts=pulumi.ResourceOptions(
+            depends_on=[vpc],
+        ),
     )
 
     # ===== Create Elastic IP

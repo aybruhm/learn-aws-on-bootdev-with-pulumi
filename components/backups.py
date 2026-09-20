@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
+import pulumi
 import pulumi_aws as aws
 
 from config import EnvConfig
@@ -25,6 +26,10 @@ def make_ec2_backup(
             id=ec2_launch_template.id,
         ),
         tags={**tags, "Name": f"{name}-web-v2"},
+        opts=pulumi.ResourceOptions(
+            depends_on=[ec2_launch_template, ec2_eip],
+        ),
+        
     )
 
     # Add EC2 Backup to EIP

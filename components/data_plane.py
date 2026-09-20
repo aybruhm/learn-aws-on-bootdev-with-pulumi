@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
+import pulumi
 import pulumi_aws as aws
 
 from config import EnvConfig
@@ -112,6 +113,7 @@ def make_data_plane(
         # additional
         skip_final_snapshot=True,
         tags={**tags, "Name": rds_replica_instance_name},
+        opts=pulumi.ResourceOptions(depends_on=[rds_instance]),
     )
     return DataPlaneBundle(
         rds_instance=rds_instance,

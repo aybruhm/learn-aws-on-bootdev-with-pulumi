@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
+import pulumi
 import pulumi_aws as aws
 
 from config import EnvConfig
@@ -33,6 +34,9 @@ def make_snapshots(
             **tags,
             "Name": ami_name,
         },
+        opts=pulumi.ResourceOptions(
+            depends_on=[ec2_instance],
+        ),
     )
 
     # ===== Create EC2 Launch Template
@@ -64,6 +68,9 @@ def make_snapshots(
             **tags,
             "Name": launch_template_name,
         },
+        opts=pulumi.ResourceOptions(
+            depends_on=[ec2_ami, key_pair],
+        ),
     )
 
     return SnapshotOutputs(
