@@ -28,43 +28,24 @@ Ch 4. RDS -- Relational Database Service
       (t3.micro, 20 GB encrypted gp2 storage, latest engine version)
     - Read replica (patientping-replica)
 
-Ch 5-11. IAM, CloudWatch, Route 53, S3, CloudFront, ECS, Lambda
+Ch 5. IAM -- Identity and Access Management
+    - IAM user (patientping-admin-vinny)
+    - Managed policy (patientping-ec2-readonly): ec2:Describe* on all
+      resources
+    - IAM group (patientping-ec2-readers) with the policy attached, and
+      the user added to the group via a user-group membership
+    - IAM role (patientping-ec2-readonly-role) trusted by the EC2 service,
+      with the policy attached, exposed to EC2 through an instance profile
+      on the web instance
+    - SSM parameters:
+      * /DATABASE_URL (SecureString): Postgres connection string built
+        from the RDS endpoint, master password, and database name
+      * /CMO_NAME (String): the CMO name from stack config
+    - IAM policy (patientping-ssm-access) granting ssm:GetParameter /
+      ssm:GetParameters on both parameters, attached to the EC2 role
+
+Ch 6-11. CloudWatch, Route 53, S3, CloudFront, ECS, Lambda
     Not yet implemented -- added as the course progresses.
-
-Usage
------
-Prerequisites: AWS credentials in your environment and the Pulumi CLI.
-
-1. Store your public IP (whitelists your machine for SSH in the security
-   group; re-run whenever your IP changes):
-
-       pulumi config set --secret local_ip "$(curl -s ifconfig.me)"
-
-2. Store a master password for the RDS database:
-
-       pulumi config set --secret rds_master_password "your-password"
-
-3. Preview and deploy:
-
-       pulumi preview
-       pulumi up
-
-4. Connect to the instance (the key is generated on the first deploy):
-
-       ssh -i ~/.ssh/patientping-key ec2-user@$(pulumi stack output ec2_eip_public_ip)
-
-5. Connect to the database from the instance (RDS only accepts connections
-   from the EC2 security group):
-
-       psql -h <endpoint-host> -U postgres -d patientping
-
-   Get the endpoint from `pulumi stack output rds_instance_endpoint`.
-
-6. Tear everything down:
-
-       pulumi destroy
-
-All resources and stack outputs are defined at the bottom of this module; inspect them with `pulumi stack output`.
 """
 
 import pulumi
