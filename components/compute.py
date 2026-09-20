@@ -146,6 +146,7 @@ def make_compute(
         tags={**tags, "Name": f"{name}-web"},
         opts=pulumi.ResourceOptions(
             depends_on=[vpc],
+            ignore_changes=["associate_public_ip_address"],
         ),
     )
 
