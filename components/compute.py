@@ -1,3 +1,4 @@
+import ipaddress
 from dataclasses import dataclass
 from typing import Any
 
@@ -78,6 +79,19 @@ def make_compute(
     # ===== Generate SSH Key
     ssh_pub_key = _generate_ssh_keys(key_name=f"{name}-key")
 
+    if "/" in env.local_ip:
+        local_ip_network = ipaddress.ip_network(env.local_ip, strict=True)
+    else:
+        local_ip_network = ipaddress.ip_network(
+            f"{env.local_ip}/{'128' if ':' in env.local_ip else '32'}",
+            strict=True,
+        )
+    cidr_kwargs = (
+        {"cidr_ipv6": str(local_ip_network)}
+        if local_ip_network.version == 6
+        else {"cidr_ipv4": str(local_ip_network)}
+    )
+
     # ===== Import SSH Key into EC2
     key_name = f"{name}-key"
     kp = aws.ec2.KeyPair(
@@ -101,12 +115,12 @@ def make_compute(
         from_port=22,
         to_port=22,
         ip_protocol="tcp",
-        cidr_ipv4=env.local_ip.apply(lambda ip: ip if "/" in ip else f"{ip}/32"),
         security_group_id=public_sg.id,
         tags={
             **tags,
             "Name": f"{name}-public-sg-ssh-ingress-rule",
         },
+        **cidr_kwargs,  # type: ignore
     )
     aws.vpc.SecurityGroupIngressRule(
         f"{name}-public-sg-http-ingress",
@@ -136,7 +150,7 @@ def make_compute(
     # ===== Create EC2 Instance
     ec2_instance = aws.ec2.Instance(
         f"{name}-web",
-        ami="ami-06f9e3b45a89cf4aa",  # Amazon Linux 2023 kernel-6.18 AMI
+        ami="ami-002a966128d15711b",  # amazon-eks-node-al2023-x86_64-standard-1.30-v20260107 AMI
         instance_type=aws.ec2.InstanceType.T3_MICRO,
         key_name=kp.key_name,
         associate_public_ip_address=False,
