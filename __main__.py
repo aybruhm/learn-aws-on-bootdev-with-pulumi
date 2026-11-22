@@ -54,6 +54,7 @@ from components.backups import make_ec2_backup
 from components.compute import make_compute
 from components.data_plane import make_data_plane
 from components.iam import make_iam
+from components.monitoring import make_external_monitoring, make_internal_monitoring
 from components.networking import make_networking
 from components.secrets import attach_ssm_parameters_to_ec2, make_ssm_parameters
 from components.snapshots import make_snapshots
@@ -66,8 +67,8 @@ DEFAULT_TAGS = {
     "ManagedBy": "Pulumi",
 }
 AVAILABILITY_ZONES = {
-    "public": ["eu-west-2a", "eu-west-2b"],
-    "private": ["eu-west-2c", "eu-west-2d"],
+    "public": ["eu-north-1a", "eu-north-1b"],
+    "private": ["eu-north-1b", "eu-north-1c"],
 }
 
 # Initialize env config
@@ -112,14 +113,24 @@ snapshot_outputs = make_snapshots(
     tags=DEFAULT_TAGS,
 )
 
+# Create internal monitoring resources and instance profile
+internal_monitoring_outputs = make_internal_monitoring(
+    name=APP_NAME,
+    ec2_instance=compute_outputs.ec2_instance,
+    env=env_config,
+    tags=DEFAULT_TAGS,
+)
+
 # Create backups
 # -------- ec2
 ec2_backup_outputs = make_ec2_backup(
     name=APP_NAME,
+    ec2_instance=compute_outputs.ec2_instance,
     ec2_launch_template=snapshot_outputs.ec2_launch_template,
     ec2_eip=compute_outputs.elastic_ip,
     env=env_config,
     tags=DEFAULT_TAGS,
+    ec2_instance_profile=internal_monitoring_outputs.ec2_monitoring_profile,
 )
 
 # Create data plane
@@ -150,6 +161,13 @@ attach_ssm_parameters_to_ec2(
     ],
 )
 
+# Create monitoring (with cloudwatch)
+external_monitoring_outputs = make_external_monitoring(
+    name=APP_NAME,
+    ec2_instance=ec2_backup_outputs.ec2_instance,
+    env=env_config,
+    tags=DEFAULT_TAGS,
+)
 
 # Export resources output
 pulumi.export("vpc_id", networking_outputs.vpc.id)
@@ -198,4 +216,24 @@ pulumi.export(
 pulumi.export(
     "cmo_name_ssm_parameter_id",
     ssm_parameters_outputs.cmo_name_ssmparameter.id,
+)
+pulumi.export(
+    "cw_dashboard_name",
+    external_monitoring_outputs.cw_dashboard.dashboard_name,
+)
+pulumi.export(
+    "ec2_monitoring_profile_name",
+    internal_monitoring_outputs.ec2_monitoring_profile.name,
+)
+pulumi.export(
+    "ec2_cloudwatch_monitoring_role_name",
+    internal_monitoring_outputs.monitoring_role.name,
+)
+pulumi.export(
+    "ec2_cloudwatch_logs_access_policy_name",
+    internal_monitoring_outputs.logs_access_policy.name,
+)
+pulumi.export(
+    "ec2_cloudwatch_ssm_access_policy_name",
+    internal_monitoring_outputs.ssm_access_policy.name,
 )
