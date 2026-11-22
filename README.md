@@ -16,7 +16,7 @@ services themselves while making use of Pulumi IaC.
 | 3 | EC2 | t3.micro AL2023 instance, key pair, Elastic IP, security group, AMI, launch template, backup instance |
 | 4 | RDS | Postgres primary + read replica, private subnet group, security group |
 | 5 | IAM + SSM | IAM user, group + membership, EC2 read-only policy, EC2 role + instance profile, `/DATABASE_URL` + `/CMO_NAME` SSM parameters, SSM access policy |
-| 6 | CloudWatch | Dashboard, EC2 monitoring role/profile, logs, and custom memory/swap metrics |
+| 6 | CloudWatch | Dashboard, EC2 monitoring role/profile, logs, custom memory/swap metrics, and SNS CPU alarm |
 | 7–11 | Route 53, S3, CloudFront, ECS, Lambda | Planned — added as the course progresses |
 
 ## Prerequisites
@@ -39,12 +39,15 @@ services themselves while making use of Pulumi IaC.
    ```bash
    pulumi config set --secret local_ip "$(curl -s ifconfig.me)"
    pulumi config set --secret rds_master_password "your-strong-password"
+   pulumi config set --secret alert_email "you@example.com"
    pulumi config set cmo_name "Dr. Strangelove"
    ```
 
    - `local_ip` — your public IPv4 address, whitelisted for SSH in the EC2
      security group. Use `curl -4` explicitly because VPNs and dual-stack networks may otherwise return an IPv6 address. Re-run whenever your IP changes.
    - `rds_master_password` — the Postgres master password for RDS.
+   - `alert_email` — the email address subscribed to CPU alarm notifications.
+     AWS sends a confirmation email before the subscription becomes active.
    - `cmo_name` — the CMO name, stored in the `/CMO_NAME` SSM parameter.
 
 3. Preview and deploy:
@@ -200,7 +203,17 @@ services themselves while making use of Pulumi IaC.
 
    `DB init failed` messages are expected while RDS is stopped or deleted.
 
-8. Tear everything down when you're done:
+8. Confirm the CloudWatch alarm email subscription:
+
+   AWS sends a confirmation email to `alert_email`. Open the message and confirm
+   the `patientping-alerts` SNS subscription before relying on alarm
+   notifications.
+
+   The `patientping-cpu-alarm` alerts when the EC2 backup instance averages
+   more than 20% CPU over a 5-minute period. The alarm publishes notifications
+   to the SNS topic for both ALARM and OK states.
+
+9. Tear everything down when you're done:
 
    ```bash
    pulumi destroy
@@ -231,6 +244,7 @@ services themselves while making use of Pulumi IaC.
 | `aws:region` | string | Deployment region — `eu-north-1` |
 | `local_ip` | string | Your public IPv4 address, allowed for SSH ingress |
 | `rds_master_password` | secret | Postgres master password for RDS; baked into the `/DATABASE_URL` SSM parameter |
+| `alert_email` | secret | Email address subscribed to CloudWatch alarm notifications |
 | `cmo_name` | string | CMO name stored in the `/CMO_NAME` SSM parameter |
 
 ## Stack outputs
@@ -246,6 +260,9 @@ services themselves while making use of Pulumi IaC.
 - `ec2_cloudwatch_monitoring_role_name`
 - `ec2_cloudwatch_logs_access_policy_name`
 - `ec2_cloudwatch_ssm_access_policy_name`
+- `ec2_monitoring_alarm_name`
+- `ec2_monitoring_alarm_sns_topic_name`
+- `ec2_monitoring_alarm_sns_topic_subscription_endpoint`
 
 Inspect them with `pulumi stack output`.
 
