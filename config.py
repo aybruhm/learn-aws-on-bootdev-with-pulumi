@@ -10,6 +10,7 @@ class EnvConfig:
     env_name: str
     local_ip: str
     rds_master_password: pulumi.Output[str]
+    alert_email: pulumi.Output[str]
     cmo_name: str
 
 
@@ -22,6 +23,7 @@ def load_env_config() -> EnvConfig:
         env_name=stack,
         local_ip=config.require("local_ip"),
         rds_master_password=config.require_secret("rds_master_password"),
+        alert_email=config.require_secret("alert_email"),
         cmo_name=config.require("cmo_name"),
     )
     return env_config

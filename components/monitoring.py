@@ -20,6 +20,13 @@ class InternalMonitoringOutputs:
     ec2_monitoring_profile: aws.iam.InstanceProfile
 
 
+@dataclass
+class MonitoringAlarmOutputs:
+    cw_sns_topic: aws.sns.Topic
+    cw_alarm: aws.cloudwatch.MetricAlarm
+    cw_sns_subscription: aws.sns.TopicSubscription
+
+
 def make_external_monitoring(
     name: str,
     ec2_instance: aws.ec2.Instance,
@@ -166,4 +173,51 @@ def make_internal_monitoring(
         logs_access_policy=pp_monitoring_policy,
         ssm_access_policy=pp_ssm_policy,
         ec2_monitoring_profile=ec2_monitoring_profile,
+    )
+
+
+def make_monitoring_alarm(
+    name: str,
+    ec2_instance: aws.ec2.Instance,
+    env: EnvConfig,
+    tags: dict[str, Any],
+) -> MonitoringAlarmOutputs:
+    # ===== Create SNS topic for alarm notifications
+    cw_sns_topic = aws.sns.Topic(
+        f"{name}-alerts",
+        name=f"{name}-alerts",
+        display_name=f"{name}-alerts",
+        tags={**tags, "Name": f"{name}-cpu-alerts"},
+    )
+
+    # ===== Create SNS subscription for alarm notifications
+    cw_sns_topic_subscription = aws.sns.TopicSubscription(
+        f"{name}-alerts-subscription",
+        topic=cw_sns_topic.arn,
+        protocol="email",
+        endpoint=env.alert_email,
+    )
+
+    # ====== Create CloudWatch alarm for EC2 instance
+    cw_alarm = aws.cloudwatch.MetricAlarm(
+        f"{name}-cpu-alarm",
+        name=f"{name}-cpu-alarm",
+        alarm_description="Alert when CPU exceeds 20%",
+        comparison_operator="GreaterThanThreshold",
+        evaluation_periods=1,
+        metric_name="CPUUtilization",
+        namespace="AWS/EC2",
+        period=60 * 5,  # 5 minutes
+        statistic="Average",
+        alarm_actions=[cw_sns_topic.arn],
+        ok_actions=[cw_sns_topic.arn],
+        threshold=20,
+        dimensions={"InstanceId": ec2_instance.id},
+        tags={**tags, "Name": f"{name}-cpu-alarm"},
+    )
+
+    return MonitoringAlarmOutputs(
+        cw_sns_topic=cw_sns_topic,
+        cw_alarm=cw_alarm,
+        cw_sns_subscription=cw_sns_topic_subscription,
     )

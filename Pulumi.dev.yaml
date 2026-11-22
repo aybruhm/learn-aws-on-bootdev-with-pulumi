@@ -5,3 +5,5 @@ config:
   bootdev-learn-aws-with-pulumi:rds_master_password:
     secure: AAABAJWnKsyuHm/hf52HlbuY2eCULtq2V+cRtZOfZSk7tzIgWF0Z3jlUyv7Fzx7HIHyz2x/1lnwO2/YDckr0wTCDCFoyKim1fIc=
   bootdev-learn-aws-with-pulumi:cmo_name: Dr. Strangelove
+  bootdev-learn-aws-with-pulumi:alert_email:
+    secure: AAABAGbVdOse/k/zn0h7wZMqF0JirMuQxpW2Fw8x7j35o//RuOGTqaFZ26sCLSCpU7y+897oEO3LiKICo91EkU8v

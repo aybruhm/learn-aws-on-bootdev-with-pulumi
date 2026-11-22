@@ -54,7 +54,11 @@ from components.backups import make_ec2_backup
 from components.compute import make_compute
 from components.data_plane import make_data_plane
 from components.iam import make_iam
-from components.monitoring import make_external_monitoring, make_internal_monitoring
+from components.monitoring import (
+    make_external_monitoring,
+    make_internal_monitoring,
+    make_monitoring_alarm,
+)
 from components.networking import make_networking
 from components.secrets import attach_ssm_parameters_to_ec2, make_ssm_parameters
 from components.snapshots import make_snapshots
@@ -169,6 +173,14 @@ external_monitoring_outputs = make_external_monitoring(
     tags=DEFAULT_TAGS,
 )
 
+# Create monitoring alarms (with cloudwatch)
+monitoring_alarm_outputs = make_monitoring_alarm(
+    name=APP_NAME,
+    ec2_instance=ec2_backup_outputs.ec2_instance,
+    env=env_config,
+    tags=DEFAULT_TAGS,
+)
+
 # Export resources output
 pulumi.export("vpc_id", networking_outputs.vpc.id)
 pulumi.export(
@@ -236,4 +248,16 @@ pulumi.export(
 pulumi.export(
     "ec2_cloudwatch_ssm_access_policy_name",
     internal_monitoring_outputs.ssm_access_policy.name,
+)
+pulumi.export(
+    "ec2_monitoring_alarm_name",
+    monitoring_alarm_outputs.cw_alarm.name,
+)
+pulumi.export(
+    "ec2_monitoring_alarm_sns_topic_name",
+    monitoring_alarm_outputs.cw_sns_topic.name,
+)
+pulumi.export(
+    "ec2_monitoring_alarm_sns_topic_subscription_endpoint",
+    monitoring_alarm_outputs.cw_sns_subscription.endpoint,
 )
